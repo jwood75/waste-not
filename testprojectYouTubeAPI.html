@@ -1,0 +1,305 @@
+<<!DOCTYPE html>
+    <html lang="en">
+
+    <head>
+        <meta charset="UTF-8">
+        <title>YouTube Search</title>
+        <script src="https://use.fontawesome.com/567fc88304.js"></script>
+        <script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+        <script src="http://cdnjs.cloudflare.com/ajax/libs/fancybox/2.1.5/jquery.fancybox.pack.js"></script>
+        <script src="script.js"></script>
+        <link rel="stylesheet" href="http://fancyapps.com/fancybox/source/jquery.fancybox.css?v=2.1.5">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+        <style type="text/css">
+        #custom-search-input {
+            padding: 3px;
+            border: solid 1px #E4E4E4;
+            border-radius: 6px;
+            background-color: #fff;
+        }
+        
+        #custom-search-input input {
+            border: 0;
+            box-shadow: none;
+            width: 93%;
+        }
+        
+        #custom-search-input button {
+            margin: 2px 0 0 0;
+            background: none;
+            box-shadow: none;
+            border: 0;
+            color: #666666;
+            padding: 0 8px 0 10px;
+            border-left: solid 1px #ccc;
+        }
+        
+        #custom-search-input button:hover {
+            border: 0;
+            box-shadow: none;
+            border-left: solid 1px #ccc;
+        }
+        
+        #custom-search-input .glyphicon-search {
+            font-size: 23px;
+        }
+        
+        article {
+            margin: 10px 0;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 4px 20px;
+        }
+        
+        .video-wrapper {
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            overflow: hidden;
+            z-index: -1;
+        }
+        
+        .video-wrapper video {
+            position: fixed;
+            top: 0;
+            right: 0;
+            min-width: 100%;
+            min-height: 100%;
+            width: auto;
+            height: auto;
+        }
+        
+        .content {
+            position: relative;
+            margin: 60px auto;
+            width: 80%;
+            max-width: 640px;
+            z-index: 1;
+        }
+        
+        .clearfix {
+            border-bottom: 1px dotted #ccc;
+            margin-bottom: 5px;
+        }
+        </style>
+    </head>
+
+    <body>
+        <div class="content">
+            <h2>YouTube Search Engine</h2>
+            <div id="custom-search-input">
+                <div class="input-group col-md-12">
+                    <form id="search-form" name="search-form" onsubmit="return searchYoutube();">
+                        <input type="text" class="form-control" placeholder="Search...." id="search" />
+                        <span class="input-group-btn">
+                            <button class="btn btn-info btn-lg" type="submit" id="findNow">
+                                <i class="glyphicon glyphicon-search"></i>
+                            </button>
+                        </span>
+                    </form>
+                </div>
+            </div>
+            <div id="results"></div>
+            <div id="buttons"></div>
+        </div>
+        <script type="text/javascript">
+        var gapikey = 'AIzaSyBRQoi1OUpDit5ANaqGj0iZKK8MRzeWy7g';
+
+        $(function() {
+
+            // call fancybox pluggin
+            $(".fancyboxIframe").fancybox({
+                maxWidth: 900,
+                maxHeight: 600,
+                fitToView: false,
+                width: '90%',
+                height: '90%',
+                autoSize: false,
+                closeClick: false,
+                openEffect: 'none',
+                closeEffect: 'none',
+                iframe: {
+                    scrolling: 'auto',
+                    preload: true
+                }
+            });
+
+            $('#search-form').submit(function(e) {
+                e.preventDefault();
+            });
+        });
+
+        function searchYoutube() {
+            $('#results').html('<i class="fa fa-spinner fa-pulse fa-3x fa-fw"></i><span class="sr-only">Loading...</span>');
+            $('#buttons').html('');
+
+            // get form input
+            q = $('#search').val();
+
+            // run get request on API
+            $.get(
+                "https://www.googleapis.com/youtube/v3/search", {
+                    part: 'snippet, id',
+                    q: q,
+                    type: 'video',
+                    key: gapikey
+                },
+                function(data) {
+                    var nextPageToken = data.nextPageToken;
+                    var prevPageToken = data.prevPageToken;
+
+                    // Log data
+                    console.log(data);
+                    $('#results').html(''); // hide loading
+                    $.each(data.items, function(i, item) {
+
+                        // Get Output
+                        var output = getOutput(item);
+
+                        // display results
+                        $('#results').append(output);
+                    });
+
+                    var buttons = getButtons(prevPageToken, nextPageToken);
+
+                    // Display buttons
+                    $('#buttons').append(buttons);
+                });
+        }
+
+        // Next page function
+        function nextPage() {
+            var token = $('#next-button').data('token');
+            var q = $('#next-button').data('query');
+
+
+            // clear 
+            $('#results').html('<i class="fa fa-spinner fa-pulse fa-3x fa-fw"></i><span class="sr-only">Loading...</span>');
+            $('#buttons').html('');
+
+            // get form input
+            q = $('#search').val();
+
+            // run get request on API
+            $.get(
+                "https://www.googleapis.com/youtube/v3/search", {
+                    part: 'snippet, id',
+                    q: q,
+                    pageToken: token,
+                    type: 'video',
+                    key: gapikey
+                },
+                function(data) {
+
+                    var nextPageToken = data.nextPageToken;
+                    var prevPageToken = data.prevPageToken;
+
+                    // Log data
+                    console.log(data);
+                    $('#results').html('');
+                    $.each(data.items, function(i, item) {
+
+                        // Get Output
+                        var output = getOutput(item);
+
+                        // display results
+                        $('#results').append(output);
+                    });
+
+                    var buttons = getButtons(prevPageToken, nextPageToken);
+
+                    // Display buttons
+                    $('#buttons').append(buttons);
+                });
+        }
+
+        // Previous page function
+        function prevPage() {
+            var token = $('#prev-button').data('token');
+            var q = $('#prev-button').data('query');
+
+
+            // clear 
+            $('#results').html('<i class="fa fa-spinner fa-pulse fa-3x fa-fw"></i><span class="sr-only">Loading...</span>');
+            $('#buttons').html('');
+
+            // get form input
+            q = $('#search').val(); // this probably shouldn't be created as a global
+
+            // run get request on API
+            $.get(
+                "https://www.googleapis.com/youtube/v3/search", {
+                    part: 'snippet, id',
+                    q: q,
+                    pageToken: token,
+                    type: 'video',
+                    key: gapikey
+                },
+                function(data) {
+
+                    var nextPageToken = data.nextPageToken;
+                    var prevPageToken = data.prevPageToken;
+
+                    // Log data
+                    console.log(data);
+                    $('#results').html('');
+                    $.each(data.items, function(i, item) {
+
+                        // Get Output
+                        var output = getOutput(item);
+
+                        // display results
+                        $('#results').append(output);
+                    });
+
+                    var buttons = getButtons(prevPageToken, nextPageToken);
+
+                    // Display buttons
+                    $('#buttons').append(buttons);
+                });
+        }
+
+        // Build output
+        function getOutput(item) {
+            var videoID = item.id.videoId;
+            var title = item.snippet.title;
+            var description = item.snippet.description;
+            var thumb = item.snippet.thumbnails.high.url;
+            var channelTitle = item.snippet.channelTitle;
+            var videoDate = item.snippet.publishedAt;
+
+            // Build output string
+            var output = '<div class="col-md-6">' +
+                '<img src="' + thumb + '" class="img-responsive thumbnail" >' +
+                '</div>' +
+                '<div class="input-group col-md-6">' +
+                '<h3><a data-fancybox-type="iframe" class="fancyboxIframe" href="http://youtube.com/embed/' + videoID + '?rel=0">' + title + '</a></h3>' +
+                '<small>By <span class="channel">' + channelTitle + '</span> on ' + videoDate + '</small>' +
+                '<p>' + description + '</p>' +
+                '</div>' +
+                '<div class="clearfix"></div>';
+            return output;
+        }
+
+        function getButtons(prevPageToken, nextPageToken) {
+            if (!prevPageToken) {
+                var btnoutput = '<ul class="pagination">' +
+                    '<li><a href="javascript:;"  id="next-button" class="paging-button" data-token="' + nextPageToken + '" data-query="' + q + '"' +
+                    'onclick = "nextPage();">Next &raquo;</a></li>' +
+                    '</ul>';
+            } else {
+                var btnoutput = '<ul class="pagination">' +
+                    '<li><a href="javascript:;" id="prev-button" class="paging-button" data-token="' + prevPageToken + '" data-query="' + q + '"' +
+                    'onclick = "prevPage();">&laquo; Previous</a></li>' +
+                    '<li><a href="javascript:;" id="next-button" class="paging-button" data-token="' + nextPageToken + '" data-query="' + q + '"' +
+                    'onclick = "nextPage();">Next &raquo;</a></li>' +
+                    '</ul>';
+            }
+
+            return btnoutput;
+        }
+        </script>
+    </body>
+
+    </html>
